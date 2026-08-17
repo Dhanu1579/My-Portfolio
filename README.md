@@ -1,28 +1,34 @@
-# Dhanush Portfolio
+# Portfolio
 
-This is a lightweight Express portfolio site (Node.js) built with security-first defaults.
+This is a lightweight Express portfolio site (Node.js) built with security-first defaults. It showcases my personal engineering projects and features an interactive contact form that sends messages straight to my inbox.
 
-Quick start
+## 🛠️ Tech Stack
+- **Frontend:** HTML5, CSS3, JavaScript (ES6+)
+- **Backend:** Node.js, Express.js
+- **Email Service:** Nodemailer (via Gmail SMTP)
+- **Security:** Helmet.js integrated for HTTP header protection
 
-1. Install dependencies
+## ⚡ Quick Start
 
+1. **Install dependencies**
+   ```bash
    npm install
+   ```
 
-2. Run locally
+2. **Configure Environment Variables**
+   Create a `.env` file in your root directory:
+   ```env
+   EMAIL_USER=dhanushpinjerla@gmail.com
+   EMAIL_PASS=your-16-character-app-password
+   ```
 
+3. **Run locally**
+   ```bash
    npm start
+   ```
+   Open: http://localhost:3000
 
-Open: http://localhost:3000
-
-Deployment
-
-- Heroku: create an app and `git push heroku main` (Procfile is included).
-- Vercel: link the project and use `vercel --prod` (set build command to `npm start`, or use the `node server.js` serverless option).
-
-Notes
-
-- The resume file used by the site is `public/resume.pdf` (kept in the repo).
-- Security headers are applied via Helmet in `server.js`.
-- The site respects `prefers-reduced-motion` and avoids heavy client-side dependencies for a handcrafted feel.
-
-If you want me to deploy this to a free hosting provider and configure a domain, tell me which provider you prefer and I’ll prepare the steps.
+## 📂 Project Highlights
+- **Contact Form Routing:** Fully functional automated backend emails via Nodemailer.
+- **Responsive Layout:** Tailored with semantic layout blocks and built-in support for `prefers-reduced-motion` settings.
+- **Resume Hosting:** The active resume asset used by the site is stored locally inside `public/resume.pdf`.
