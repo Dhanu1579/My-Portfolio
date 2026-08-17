@@ -9,19 +9,25 @@ const app = express();
 // Render automatically provides a process.env.PORT, otherwise defaults to 10000
 const PORT = process.env.PORT || 10000; 
 
-// ✅ FIX 1 & 2: Explicit cloud-compatible port configuration & uniform environment variables
+// ✅ REPLACE LINES 12 TO 24 IN YOUR SERVER.JS WITH THIS:
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465, // Secure SSL port allowed by cloud providers
+  port: 465,
   secure: true,
+  dnsTimeout: 10000, 
+  connectionTimeout: 10000,
   auth: {
-    user: process.env.EMAIL_USER, // Changed to match your Render dashboard settings
-    pass: process.env.GMAIL_APP_PASSWORD  // Changed to match your Render dashboard settings
+    user: process.env.EMAIL_USER, // Matches your Render dashboard Key
+    pass: process.env.GMAIL_APP_PASSWORD  // FIXED: Changed from GMAIL_APP_PASSWORD to EMAIL_PASS
   },
   tls: {
-    rejectUnauthorized: false // Prevents cloud hosting certificate blocks
+    rejectUnauthorized: false
   }
 });
+
+// Force Node to prioritize IPv4 networks (Fixes the ENETUNREACH Render network block)
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first'); 
 
 // Test transporter connection once on startup
 transporter.verify((error, success) => {
