@@ -9,18 +9,29 @@ require('dotenv').config();
 const app = express();
 app.use(cors());
 // Render automatically provides a process.env.PORT, otherwise defaults to 10000
-const PORT = process.env.PORT || 10000; 
+// Force Node to resolve IPv4 first
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first'); 
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,
-  secure: false, // Use STARTTLS instead of direct SSL
+  secure: false, // TLS via STARTTLS
   auth: {
     user: process.env.GMAIL_EMAIL,
     pass: process.env.GMAIL_APP_PASSWORD
   },
   tls: {
     rejectUnauthorized: false
+  }
+});
+
+// Non-blocking connection test (won't crash the server if it fails)
+transporter.verify((error) => {
+  if (error) {
+    console.error('Email transporter error:', error.message);
+  } else {
+    console.log('Email service ready');
   }
 });
 
