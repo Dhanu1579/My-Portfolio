@@ -35,7 +35,8 @@ app.use(
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,
-  secure: false,
+  secure: false, // TLS via STARTTLS
+  family: 4,     // 👈 FORCE NODEMAILER TO USE IPV4 ONLY (Fixes ENETUNREACH on Render)
   auth: {
     user: process.env.GMAIL_EMAIL,
     pass: process.env.GMAIL_APP_PASSWORD
