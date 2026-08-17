@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
   dnsTimeout: 10000, 
   connectionTimeout: 10000,
   auth: {
-    user: process.env.EMAIL_USER, // Matches your Render dashboard Key
+    user: process.env.GMAIL_EMAIL, // Matches your Render dashboard Key
     pass: process.env.GMAIL_APP_PASSWORD  // FIXED: Changed from GMAIL_APP_PASSWORD to EMAIL_PASS
   },
   tls: {
