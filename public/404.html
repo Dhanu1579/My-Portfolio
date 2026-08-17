@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page Not Found</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      body {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+      .not-found {
+        width: min(720px, calc(100% - 2rem));
+        padding: 2rem;
+        text-align: center;
+        border: 1px solid rgba(160, 186, 255, 0.18);
+        border-radius: 24px;
+        background: rgba(17, 26, 41, 0.8);
+      }
+      .not-found h1 {
+        font-size: clamp(2rem, 10vw, 4rem);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="not-found">
+      <p class="eyebrow">404</p>
+      <h1>Page not found.</h1>
+      <p>The page you requested does not exist or may have moved.</p>
+      <a class="button primary" href="/">Back to home</a>
+    </main>
+  </body>
+</html>
