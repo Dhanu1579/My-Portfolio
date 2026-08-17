@@ -97,48 +97,37 @@ if (toggleButton && navLinks) {
 // ==========================================
 // 🛠️ CONTACT FORM SUBMISSION HANDLER
 // ==========================================
-const contactForm = document.getElementById('contactForm');
-const formStatus = document.getElementById('formStatus');
+const contactForm = document.querySelector('form'); // or document.getElementById('contactForm')
+const formStatus = document.getElementById('form-status'); // or your status div selector
 
 if (contactForm) {
-  contactForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
+  contactForm.addEventListener('submit', async (e) => {
+    e.preventDefault(); // 👈 CRITICAL: Stops page refresh and scrolling to top
 
     const formData = new FormData(contactForm);
     const payload = {
-      name: String(formData.get('name') || '').trim(),
-      email: String(formData.get('email') || '').trim(),
-      company: String(formData.get('company') || '').trim(),
-      message: String(formData.get('message') || '').trim(),
-      website: String(formData.get('website') || '').trim()
+      name: formData.get('name'),
+      email: formData.get('email'),
+      company: formData.get('company') || '',
+      message: formData.get('message'),
+      website: formData.get('website') || '' // honeypot check
     };
 
-    if (payload.website) {
-      formStatus.textContent = 'Request rejected.';
-      formStatus.classList.add('error');
-      return;
-    }
+    if (payload.website) return;
 
     if (!payload.name || !payload.email || !payload.message) {
-      formStatus.textContent = 'Name, email, and message are required.';
-      formStatus.classList.add('error');
+      if (formStatus) formStatus.textContent = 'Please fill out all required fields.';
       return;
     }
 
-    formStatus.textContent = 'Sending...';
-    formStatus.classList.remove('error');
-
-    // 🔴 CHOOSE CONFIGURATION OPTION BELOW BASED ON YOUR DEPLOYMENT SETUP:
-    // Option A (If Frontend and Backend share the same Render project): '/api/contact'
-    // Option B (If Backend is its own separate project service): 'https://onrender.com'
-    const API_URL = '/api/contact';
-
     try {
-      const response = await fetch(API_URL, {
+      if (formStatus) formStatus.textContent = 'Sending...';
+
+      const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'application/json'
+          'Accept': 'application/json'
         },
         body: JSON.stringify(payload)
       });
@@ -149,12 +138,11 @@ if (contactForm) {
         throw new Error(result.error || 'Something went wrong.');
       }
 
-      formStatus.textContent = result.message || 'Message sent successfully.';
-      formStatus.classList.remove('error');
+      if (formStatus) formStatus.textContent = result.message || 'Message sent successfully!';
       contactForm.reset();
-    } catch (error) {
-      formStatus.textContent = error.message || 'Unable to send message right now.';
-      formStatus.classList.add('error');
+    } catch (err) {
+      console.error('Submit error:', err);
+      if (formStatus) formStatus.textContent = err.message || 'Failed to send message.';
     }
   });
 }
