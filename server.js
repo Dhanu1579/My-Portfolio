@@ -66,7 +66,8 @@ app.post('/api/contact', async (req, res) => {
 });
 
 
-app.get('(.*)', (req, res) => {
+
+app.get('/*path', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
