@@ -4,19 +4,38 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
+const dns = require('dns');
 require('dotenv').config();
 
+// Prioritize IPv4
+dns.setDefaultResultOrder('ipv4first');
+
 const app = express();
+const PORT = process.env.PORT || 10000;
+
 app.use(cors());
-// Render automatically provides a process.env.PORT, otherwise defaults to 10000
-// Force Node to resolve IPv4 first
-const dns = require('dns');
-dns.setDefaultResultOrder('ipv4first'); 
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use(limiter);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+  })
+);
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,
-  secure: false, // TLS via STARTTLS
+  secure: false,
   auth: {
     user: process.env.GMAIL_EMAIL,
     pass: process.env.GMAIL_APP_PASSWORD
@@ -26,179 +45,50 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Non-blocking connection test (won't crash the server if it fails)
 transporter.verify((error) => {
   if (error) {
-    console.error('Email transporter error:', error.message);
+    console.error('Transporter status:', error.message);
   } else {
     console.log('Email service ready');
   }
 });
-
-// Force Node to prioritize IPv4 networks (Fixes the ENETUNREACH Render network block)
-const dns = require('dns');
-dns.setDefaultResultOrder('ipv4first'); 
-
-// Test transporter connection once on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('Email transporter error:', error.message);
-  } else {
-    console.log('Email service ready');
-  }
-});
-
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: false, limit: '1mb' }));
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    error: 'Too many requests. Please slow down and try again in a few minutes.'
-  }
-});
-
-app.use(limiter);
-
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        baseUri: ["'self'"],
-        objectSrc: ["'none'"],
-        scriptSrc: ["'self'", "https://cdnjs.cloudflare.com"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https:"],
-        fontSrc: ["'self'"],
-        formAction: ["'self'"],
-        frameAncestors: ["'none'"]
-      }
-    }
-  })
-);
-    crossOriginResourcePolicy: { policy: 'same-site' },
-    dnsPrefetchControl: { allow: false },
-    frameguard: { action: 'deny' },
-    hidePoweredBy: true,
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true
-    },
-    noSniff: true,
-    referrerPolicy: { policy: 'same-origin' },
-    xssFilter: true
-  })
-);
-
-app.disable('x-powered-by');
 
 app.use(
   express.static(path.join(__dirname, 'public'), {
     index: 'index.html',
-    redirect: false,
-    maxAge: '1h',
-    setHeaders(res, filePath) {
-      if (filePath.endsWith('.html') || filePath.endsWith('.pdf')) {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      }
-    }
+    redirect: false
   })
 );
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok' });
 });
 
 app.post('/api/contact', (req, res) => {
   const { name, email, company, message, website } = req.body || {};
 
-  if (website) {
-    return res.status(400).json({ error: 'Invalid request.' });
-  }
-
+  if (website) return res.status(400).json({ error: 'Invalid request.' });
   if (!name || !email || !message) {
-    return res.status(400).json({ error: 'Name, email, and message are required.' });
+    return res.status(400).json({ error: 'Name, email, and message required.' });
   }
-
-  const trimmedName = String(name).trim();
-  const trimmedEmail = String(email).trim();
-  const trimmedCompany = String(company || '').trim();
-  const trimmedMessage = String(message).trim();
-
-  if (trimmedName.length < 2 || trimmedName.length > 100) {
-    return res.status(400).json({ error: 'Please enter a valid name.' });
-  }
-
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailPattern.test(trimmedEmail) || trimmedEmail.length > 254) {
-    return res.status(400).json({ error: 'Please enter a valid email address.' });
-  }
-
-  if (trimmedMessage.length < 10 || trimmedMessage.length > 2000) {
-    return res.status(400).json({ error: 'Message must be between 10 and 2000 characters.' });
-  }
-
-  if (trimmedCompany.length > 150) {
-    return res.status(400).json({ error: 'Company name is too long.' });
-  }
-
-  console.log('Contact form received:', {
-    name: trimmedName,
-    email: trimmedEmail,
-    company: trimmedCompany,
-    message: trimmedMessage.slice(0, 200)
-  });
 
   const mailOptions = {
-    from: process.env.GMAIL_EMAIL, //  FIXED: Matches your transporter username
-    to: process.env.GMAIL_EMAIL,   //  FIXED: Sends the portfolio inquiry to yourself
-    replyTo: trimmedEmail,
-    subject: `New Contact from ${trimmedName}`,
-    html: `
-      <h2>New Message from Your Portfolio</h2>
-      <p><strong>Name:</strong> ${trimmedName}</p>
-      <p><strong>Email:</strong> ${trimmedEmail}</p>
-      ${trimmedCompany ? `<p><strong>Company:</strong> ${trimmedCompany}</p>` : ''}
-      <p><strong>Message:</strong></p>
-      <p>${trimmedMessage.replace(/\n/g, '<br>')}</p>
-    `
+    from: process.env.GMAIL_EMAIL,
+    to: process.env.GMAIL_EMAIL,
+    replyTo: String(email).trim(),
+    subject: `New Contact from ${String(name).trim()}`,
+    html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong> ${message}</p>`
   };
 
-
-  // ✅ FIX 3: Moved client response handling inside the mail callback with proper 'return' calls
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error('Email send error:', error.message);
-      return res.status(500).json({ error: 'Failed to send message. Please try again later.' });
+  transporter.sendMail(mailOptions, (err) => {
+    if (err) {
+      console.error('Send error:', err.message);
+      return res.status(500).json({ error: 'Failed to send message.' });
     }
-    console.log('Email sent:', info.response);
-    return res.status(200).json({
-      success: true,
-      message: 'Thanks for reaching out. I will get back to you soon.'
-    });
+    return res.status(200).json({ success: true, message: 'Message sent!' });
   });
-});
-
-app.get('/security.txt', (req, res) => {
-  res.type('text/plain').send(
-    'Contact: mailto:hello@yourdomain.com\n' +
-      'Preferred-Languages: en\n' +
-      'Canonical: https://yourdomain.com/\n' +
-      'Policy: https://yourdomain.com/\n' +
-      'Hiring: https://yourdomain.com/'
-  );
-});
-
-app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`Portfolio server running on port ${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });
