@@ -3,9 +3,11 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+app.use(cors());
 // Render automatically provides a process.env.PORT, otherwise defaults to 10000
 const PORT = process.env.PORT || 10000; 
 
@@ -60,18 +62,17 @@ app.use(
         defaultSrc: ["'self'"],
         baseUri: ["'self'"],
         objectSrc: ["'none'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https:"],
         fontSrc: ["'self'"],
         formAction: ["'self'"],
-        frameAncestors: ["'none'"],
-        manifestSrc: ["'self'"],
-        mediaSrc: ["'self'"],
-        upgradeInsecureRequests: []
+        frameAncestors: ["'none'"]
       }
-    },
+    }
+  })
+);
     crossOriginResourcePolicy: { policy: 'same-site' },
     dnsPrefetchControl: { allow: false },
     frameguard: { action: 'deny' },
@@ -147,8 +148,8 @@ app.post('/api/contact', (req, res) => {
   });
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_USER,
+    from: process.env.GMAIL_EMAIL, //  FIXED: Matches your transporter username
+    to: process.env.GMAIL_EMAIL,   //  FIXED: Sends the portfolio inquiry to yourself
     replyTo: trimmedEmail,
     subject: `New Contact from ${trimmedName}`,
     html: `
@@ -160,6 +161,7 @@ app.post('/api/contact', (req, res) => {
       <p>${trimmedMessage.replace(/\n/g, '<br>')}</p>
     `
   };
+
 
   // ✅ FIX 3: Moved client response handling inside the mail callback with proper 'return' calls
   transporter.sendMail(mailOptions, (error, info) => {

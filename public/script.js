@@ -42,7 +42,7 @@ if (toggleButton && navLinks) {
 })();
 
 // Gentle parallax tied to mouse movement for desktop (subtle, handcrafted)
-(function setupParallax(){
+(function setupParallax() { ... })();{
   if (window.matchMedia('(pointer: coarse)').matches) return; // skip touch
   const parallaxSelectors = ['.noise', '.hero', '.hero-card', '.brand-mark'];
   const layers = parallaxSelectors.map(sel => document.querySelector(sel)).filter(Boolean);
@@ -71,7 +71,7 @@ if (toggleButton && navLinks) {
     if (!document.getElementById('lottieFlourish')) return;
     // load lottie from CDN
     const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.7.6/lottie.min.js';
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
     s.onload = () => {
       if (window.lottie) {
         const anim = window.lottie.loadAnimation({
@@ -94,6 +94,9 @@ if (toggleButton && navLinks) {
   }
 })();
 
+// ==========================================
+// 🛠️ CONTACT FORM SUBMISSION HANDLER
+// ==========================================
 const contactForm = document.getElementById('contactForm');
 const formStatus = document.getElementById('formStatus');
 
@@ -125,8 +128,13 @@ if (contactForm) {
     formStatus.textContent = 'Sending...';
     formStatus.classList.remove('error');
 
+    // 🔴 CHOOSE CONFIGURATION OPTION BELOW BASED ON YOUR DEPLOYMENT SETUP:
+    // Option A (If Frontend and Backend share the same Render project): '/api/contact'
+    // Option B (If Backend is its own separate project service): 'https://onrender.com'
+    const API_URL = '/api/contact';
+
     try {
-      const response = await fetch('/api/contact', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
