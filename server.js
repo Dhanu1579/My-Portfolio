@@ -51,19 +51,14 @@ app.post('/api/contact', async (req, res) => {
   }
 
   try {
-    const data = await resend.emails.send({
-      from: 'Portfolio Contact <onboarding@resend.dev>', // Free default sending address
-      to: [process.env.GMAIL_EMAIL], // Your email where you want to receive inquiries
-      replyTo: String(email).trim(),
-      subject: `New Contact from ${String(name).trim()}`,
-      html: `
-        <h2>New Portfolio Message</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Company:</strong> ${company || 'N/A'}</p>
-        <p><strong>Message:</strong> ${message}</p>
-      `
-    });
+    // ✅ CORRECT (Sends notification TO YOU)
+const data = await resend.emails.send({
+  from: 'Portfolio Contact <onboarding@resend.dev>',
+  to: [process.env.GMAIL_EMAIL], // Your email address where you receive submissions
+  replyTo: String(email).trim(), // The visitor's email address
+  subject: `New Contact from ${String(name).trim()}`,
+  html: `<p><strong>Name:</strong> ${name}</p><p><strong>Message:</strong> ${message}</p>`
+});
 
     console.log('Email sent via Resend:', data);
     return res.status(200).json({ success: true, message: 'Message sent successfully!' });
