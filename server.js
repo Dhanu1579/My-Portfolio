@@ -11,16 +11,13 @@ app.use(cors());
 // Render automatically provides a process.env.PORT, otherwise defaults to 10000
 const PORT = process.env.PORT || 10000; 
 
-// ✅ REPLACE LINES 12 TO 24 IN YOUR SERVER.JS WITH THIS:
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  dnsTimeout: 10000, 
-  connectionTimeout: 10000,
+  port: 587,
+  secure: false, // Use STARTTLS instead of direct SSL
   auth: {
-    user: process.env.GMAIL_EMAIL, // Matches your Render dashboard Key
-    pass: process.env.GMAIL_APP_PASSWORD  // FIXED: Changed from GMAIL_APP_PASSWORD to EMAIL_PASS
+    user: process.env.GMAIL_EMAIL,
+    pass: process.env.GMAIL_APP_PASSWORD
   },
   tls: {
     rejectUnauthorized: false
