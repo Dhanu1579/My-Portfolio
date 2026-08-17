@@ -2,16 +2,15 @@ const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-const nodemailer = require('nodemailer');
 const cors = require('cors');
-const dns = require('dns');
+const { Resend } = require('resend');
 require('dotenv').config();
-
-// Prioritize IPv4
-dns.setDefaultResultOrder('ipv4first');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
+
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -32,28 +31,6 @@ app.use(
   })
 );
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // TLS via STARTTLS
-  family: 4,     // 👈 FORCE NODEMAILER TO USE IPV4 ONLY (Fixes ENETUNREACH on Render)
-  auth: {
-    user: process.env.GMAIL_EMAIL,
-    pass: process.env.GMAIL_APP_PASSWORD
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
-
-transporter.verify((error) => {
-  if (error) {
-    console.error('Transporter status:', error.message);
-  } else {
-    console.log('Email service ready');
-  }
-});
-
 app.use(
   express.static(path.join(__dirname, 'public'), {
     index: 'index.html',
@@ -65,7 +42,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.post('/api/contact', (req, res) => {
+app.post('/api/contact', async (req, res) => {
   const { name, email, company, message, website } = req.body || {};
 
   if (website) return res.status(400).json({ error: 'Invalid request.' });
@@ -73,21 +50,27 @@ app.post('/api/contact', (req, res) => {
     return res.status(400).json({ error: 'Name, email, and message required.' });
   }
 
-  const mailOptions = {
-    from: process.env.GMAIL_EMAIL,
-    to: process.env.GMAIL_EMAIL,
-    replyTo: String(email).trim(),
-    subject: `New Contact from ${String(name).trim()}`,
-    html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong> ${message}</p>`
-  };
+  try {
+    const data = await resend.emails.send({
+      from: 'Portfolio Contact <onboarding@resend.dev>', // Free default sending address
+      to: [process.env.GMAIL_EMAIL], // Your email where you want to receive inquiries
+      replyTo: String(email).trim(),
+      subject: `New Contact from ${String(name).trim()}`,
+      html: `
+        <h2>New Portfolio Message</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Company:</strong> ${company || 'N/A'}</p>
+        <p><strong>Message:</strong> ${message}</p>
+      `
+    });
 
-  transporter.sendMail(mailOptions, (err) => {
-    if (err) {
-      console.error('Send error:', err.message);
-      return res.status(500).json({ error: 'Failed to send message.' });
-    }
-    return res.status(200).json({ success: true, message: 'Message sent!' });
-  });
+    console.log('Email sent via Resend:', data);
+    return res.status(200).json({ success: true, message: 'Message sent successfully!' });
+  } catch (error) {
+    console.error('Resend error:', error);
+    return res.status(500).json({ error: 'Failed to send message.' });
+  }
 });
 
 app.listen(PORT, () => {
