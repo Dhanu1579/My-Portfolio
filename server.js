@@ -6,14 +6,20 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// Render automatically provides a process.env.PORT, otherwise defaults to 10000
+const PORT = process.env.PORT || 10000; 
 
-// Email transporter setup
+// ✅ FIX 1 & 2: Explicit cloud-compatible port configuration & uniform environment variables
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465, // Secure SSL port allowed by cloud providers
+  secure: true,
   auth: {
-    user: process.env.GMAIL_EMAIL,
-    pass: process.env.GMAIL_APP_PASSWORD
+    user: process.env.EMAIL_USER, // Changed to match your Render dashboard settings
+    pass: process.env.GMAIL_APP_PASSWORD  // Changed to match your Render dashboard settings
+  },
+  tls: {
+    rejectUnauthorized: false // Prevents cloud hosting certificate blocks
   }
 });
 
@@ -134,10 +140,9 @@ app.post('/api/contact', (req, res) => {
     message: trimmedMessage.slice(0, 200)
   });
 
-  // Send email to your inbox
   const mailOptions = {
-    from: process.env.GMAIL_EMAIL,
-    to: process.env.GMAIL_EMAIL,
+    from: process.env.EMAIL_USER,
+    to: process.env.EMAIL_USER,
     replyTo: trimmedEmail,
     subject: `New Contact from ${trimmedName}`,
     html: `
@@ -150,17 +155,17 @@ app.post('/api/contact', (req, res) => {
     `
   };
 
+  // ✅ FIX 3: Moved client response handling inside the mail callback with proper 'return' calls
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       console.error('Email send error:', error.message);
       return res.status(500).json({ error: 'Failed to send message. Please try again later.' });
     }
     console.log('Email sent:', info.response);
-  });
-
-  res.status(202).json({
-    success: true,
-    message: 'Thanks for reaching out. I will get back to you soon.'
+    return res.status(200).json({
+      success: true,
+      message: 'Thanks for reaching out. I will get back to you soon.'
+    });
   });
 });
 
@@ -179,5 +184,5 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Portfolio server running at http://localhost:${PORT}`);
+  console.log(`Portfolio server running on port ${PORT}`);
 });
