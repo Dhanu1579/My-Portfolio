@@ -10,44 +10,38 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Recreate __dirname for ES modules
+// Proper __dirname setup for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Serve static frontend files from 'public' directory
+// Serve static frontend files from 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Contact Form Endpoint
 app.post('/api/contact', async (req, res) => {
   try {
     const { name, email, company, message, website } = req.body;
 
-    // Honeypot check for spam bots
     if (website) {
       return res.status(200).json({ success: true, message: 'Message sent successfully!' });
     }
 
-    // Input validation
     if (!name || !email || !message) {
       return res.status(400).json({ error: 'Name, email, and message are required.' });
     }
 
-    // Send email using Resend
     const data = await resend.emails.send({
       from: 'Portfolio Contact <onboarding@resend.dev>',
       to: [process.env.GMAIL_EMAIL],
       replyTo: String(email).trim(),
       subject: `New Contact Form Submission from ${String(name).trim()}`,
       html: `
-        <div style="font-family: sans-serif; padding: 20px; line-height: 1.6; color: #333;">
-          <h2 style="color: #0b1020;">New Portfolio Message</h2>
+        <div style="font-family: sans-serif; padding: 20px; line-height: 1.6;">
+          <h2>New Portfolio Message</h2>
           <hr />
           <p><strong>Name:</strong> ${String(name).trim()}</p>
           <p><strong>Email:</strong> ${String(email).trim()}</p>
@@ -61,23 +55,21 @@ app.post('/api/contact', async (req, res) => {
     });
 
     if (data.error) {
-      console.error('Resend API Error:', data.error);
       return res.status(400).json({ error: data.error.message || 'Failed to send email.' });
     }
 
     return res.status(200).json({ success: true, message: 'Message sent successfully!' });
   } catch (error) {
-    console.error('Server Internal Error:', error);
-    return res.status(500).json({ error: 'Internal server error. Please try again later.' });
+    console.error('Server Error:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
   }
 });
 
-// Fallback route to serve index.html
+// Fallback to index.html for single page layout
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start Server
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
