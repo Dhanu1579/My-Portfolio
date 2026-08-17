@@ -1,148 +1,79 @@
-const yearNode = document.getElementById('year');
-if (yearNode) {
-  yearNode.textContent = new Date().getFullYear();
-}
+document.addEventListener('DOMContentLoaded', () => {
+  // Mobile Navigation Menu Toggle
+  const navToggle = document.querySelector('.nav-toggle');
+  const navLinks = document.getElementById('menu');
 
-const toggleButton = document.querySelector('.nav-toggle');
-const navLinks = document.getElementById('menu');
-
-if (toggleButton && navLinks) {
-  toggleButton.addEventListener('click', () => {
-    const isOpen = navLinks.classList.toggle('open');
-    toggleButton.setAttribute('aria-expanded', String(isOpen));
-  });
-
-  navLinks.querySelectorAll('a').forEach((link) => {
-    link.addEventListener('click', () => {
-      navLinks.classList.remove('open');
-      toggleButton.setAttribute('aria-expanded', 'false');
+  if (navToggle && navLinks) {
+    navToggle.addEventListener('click', () => {
+      const isExpanded = navToggle.getAttribute('aria-expanded') === 'true';
+      navToggle.setAttribute('aria-expanded', !isExpanded);
+      navLinks.classList.toggle('active');
     });
-  });
-}
-
-// Staggered reveal using IntersectionObserver for a handmade feel
-(function setupReveals() {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; // respect user
-
-  const items = document.querySelectorAll('.reveal');
-  const options = { root: null, rootMargin: '0px 0px -8% 0px', threshold: 0.08 };
-
-  const observer = new IntersectionObserver((entries, obs) => {
-    entries.forEach((entry, idx) => {
-      if (!entry.isIntersecting) return;
-      const el = entry.target;
-      // compute delay based on index within parent
-      const delay = (Array.from(items).indexOf(el) % 6) * 120;
-      setTimeout(() => el.classList.add('revealed'), delay);
-      obs.unobserve(el);
-    });
-  }, options);
-
-  items.forEach((el) => observer.observe(el));
-})();
-
-// Gentle parallax tied to mouse movement for desktop (subtle, handcrafted)
-(function setupParallax() { ... })();{
-  if (window.matchMedia('(pointer: coarse)').matches) return; // skip touch
-  const parallaxSelectors = ['.noise', '.hero', '.hero-card', '.brand-mark'];
-  const layers = parallaxSelectors.map(sel => document.querySelector(sel)).filter(Boolean);
-  if (!layers.length) return;
-
-  let lastX = 0, lastY = 0, raf = null;
-  window.addEventListener('mousemove', (e) => {
-    lastX = (e.clientX / window.innerWidth - 0.5) * 4; // subtler
-    lastY = (e.clientY / window.innerHeight - 0.5) * 3; // subtler
-    if (!raf) raf = requestAnimationFrame(updateParallax);
-  }, { passive: true });
-
-  function updateParallax(){
-    layers.forEach((el, i) => {
-      const depth = (i + 1) * 0.35; // subtler depth
-      el.style.transform = `translate3d(${lastX / (12/depth)}px, ${lastY / (18/depth)}px, 0)`;
-    });
-    raf = null;
   }
-})();
 
-// Load Lottie flourish animation (subtle, plays once)
-(function loadLottie(){
-  try {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (!document.getElementById('lottieFlourish')) return;
-    // load lottie from CDN
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
-    s.onload = () => {
-      if (window.lottie) {
-        const anim = window.lottie.loadAnimation({
-          container: document.getElementById('lottieFlourish'),
-          renderer: 'svg',
-          loop: false,
-          autoplay: true,
-          path: '/lottie/flourish.json'
-        });
-        anim.addEventListener('DOMLoaded', () => {
-          const el = document.getElementById('lottieFlourish');
-          if (el) el.classList.add('playing');
-        });
-      }
-    };
-    document.head.appendChild(s);
-  } catch (e) {
-    // Fail silently
-    console.warn('Lottie failed to load', e);
-  }
-})();
+  // Contact Form Logic
+  const contactForm = document.getElementById('contactForm');
+  const formStatus = document.getElementById('formStatus');
 
-// ==========================================
-// 🛠️ CONTACT FORM SUBMISSION HANDLER
-// ==========================================
-const contactForm = document.querySelector('form'); // or document.getElementById('contactForm')
-const formStatus = document.getElementById('form-status'); // or your status div selector
+  if (contactForm) {
+    contactForm.addEventListener('submit', async (event) => {
+      event.preventDefault(); // Prevents page reload and url query parameter append
 
-if (contactForm) {
-  contactForm.addEventListener('submit', async (e) => {
-    e.preventDefault(); // 👈 CRITICAL: Stops page refresh and scrolling to top
+      const formData = new FormData(contactForm);
+      const payload = {
+        name: formData.get('name') ? formData.get('name').trim() : '',
+        email: formData.get('email') ? formData.get('email').trim() : '',
+        company: formData.get('company') ? formData.get('company').trim() : '',
+        message: formData.get('message') ? formData.get('message').trim() : '',
+        website: formData.get('website') || '' // Honeypot check
+      };
 
-    const formData = new FormData(contactForm);
-    const payload = {
-      name: formData.get('name'),
-      email: formData.get('email'),
-      company: formData.get('company') || '',
-      message: formData.get('message'),
-      website: formData.get('website') || '' // honeypot check
-    };
+      // Ignore silent bot submissions
+      if (payload.website) return;
 
-    if (payload.website) return;
-
-    if (!payload.name || !payload.email || !payload.message) {
-      if (formStatus) formStatus.textContent = 'Please fill out all required fields.';
-      return;
-    }
-
-    try {
-      if (formStatus) formStatus.textContent = 'Sending...';
-
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Something went wrong.');
+      // Validation
+      if (!payload.name || !payload.email || !payload.message) {
+        if (formStatus) {
+          formStatus.textContent = 'Please fill out all required fields.';
+          formStatus.style.color = '#ff6b6b';
+        }
+        return;
       }
 
-      if (formStatus) formStatus.textContent = result.message || 'Message sent successfully!';
-      contactForm.reset();
-    } catch (err) {
-      console.error('Submit error:', err);
-      if (formStatus) formStatus.textContent = err.message || 'Failed to send message.';
-    }
-  });
-}
+      try {
+        if (formStatus) {
+          formStatus.textContent = 'Sending...';
+          formStatus.style.color = '#64ffda';
+        }
+
+        const response = await fetch('/api/contact', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to send message.');
+        }
+
+        if (formStatus) {
+          formStatus.textContent = result.message || 'Message sent successfully!';
+          formStatus.style.color = '#64ffda';
+        }
+        
+        contactForm.reset();
+      } catch (err) {
+        console.error('Submission error:', err);
+        if (formStatus) {
+          formStatus.textContent = err.message || 'Error sending message. Try again later.';
+          formStatus.style.color = '#ff6b6b';
+        }
+      }
+    });
+  }
+});

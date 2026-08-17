@@ -1,73 +1,83 @@
-const express = require('express');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const path = require('path');
-const cors = require('cors');
-const { Resend } = require('resend');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Resend } from 'resend';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Initialize Resend
+// Recreate __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Middleware
 app.use(cors());
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+app.use(express.json());
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false
-});
-app.use(limiter);
+// Serve static frontend files from 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginResourcePolicy: { policy: 'cross-origin' }
-  })
-);
-
-app.use(
-  express.static(path.join(__dirname, 'public'), {
-    index: 'index.html',
-    redirect: false
-  })
-);
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
+// Contact Form Endpoint
 app.post('/api/contact', async (req, res) => {
-  const { name, email, company, message, website } = req.body || {};
-
-  if (website) return res.status(400).json({ error: 'Invalid request.' });
-  if (!name || !email || !message) {
-    return res.status(400).json({ error: 'Name, email, and message required.' });
-  }
-
   try {
-    // ✅ CORRECT (Sends notification TO YOU)
-const data = await resend.emails.send({
-  from: 'Portfolio Contact <onboarding@resend.dev>',
-  to: [process.env.GMAIL_EMAIL], // Your email address where you receive submissions
-  replyTo: String(email).trim(), // The visitor's email address
-  subject: `New Contact from ${String(name).trim()}`,
-  html: `<p><strong>Name:</strong> ${name}</p><p><strong>Message:</strong> ${message}</p>`
-});
+    const { name, email, company, message, website } = req.body;
 
-    console.log('Email sent via Resend:', data);
+    // Honeypot check for spam bots
+    if (website) {
+      return res.status(200).json({ success: true, message: 'Message sent successfully!' });
+    }
+
+    // Input validation
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'Name, email, and message are required.' });
+    }
+
+    // Send email using Resend
+    const data = await resend.emails.send({
+      from: 'Portfolio Contact <onboarding@resend.dev>',
+      to: [process.env.GMAIL_EMAIL],
+      replyTo: String(email).trim(),
+      subject: `New Contact Form Submission from ${String(name).trim()}`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; line-height: 1.6; color: #333;">
+          <h2 style="color: #0b1020;">New Portfolio Message</h2>
+          <hr />
+          <p><strong>Name:</strong> ${String(name).trim()}</p>
+          <p><strong>Email:</strong> ${String(email).trim()}</p>
+          <p><strong>Company:</strong> ${company ? String(company).trim() : 'N/A'}</p>
+          <p><strong>Message:</strong></p>
+          <div style="background: #f4f4f4; padding: 15px; border-radius: 5px;">
+            ${String(message).trim().replace(/\n/g, '<br/>')}
+          </div>
+        </div>
+      `
+    });
+
+    if (data.error) {
+      console.error('Resend API Error:', data.error);
+      return res.status(400).json({ error: data.error.message || 'Failed to send email.' });
+    }
+
     return res.status(200).json({ success: true, message: 'Message sent successfully!' });
   } catch (error) {
-    console.error('Resend error:', error);
-    return res.status(500).json({ error: 'Failed to send message.' });
+    console.error('Server Internal Error:', error);
+    return res.status(500).json({ error: 'Internal server error. Please try again later.' });
   }
 });
 
+// Fallback route to serve index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Start Server
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
