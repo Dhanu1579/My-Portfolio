@@ -9,7 +9,7 @@ A lightweight, secure developer portfolio website built to showcase my software 
 - **Frontend:** HTML5, CSS3, JavaScript (ES6+)
 - **Backend:** Node.js, Express.js
 - **Email Service:** Nodemailer API (Integrated with Gmail SMTP)
-- **Security:** Helmet.js middleware for production header protection
+
 
 ## ✨ Key Technical Features
 - **Asynchronous Contact Form:** Submits user queries instantly via client-side Fetch API to a secure backend endpoint.
