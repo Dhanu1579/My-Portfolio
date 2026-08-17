@@ -1,23 +1,22 @@
 {
-  "name": "dhanush",
+  "name": "dhanush-portfolio",
   "version": "1.0.0",
-  "description": "",
+  "description": "Portfolio website backend",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Dhanush",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
     "helmet": "^8.3.0",
-    "nodemailer": "^9.0.5",
     "resend": "^6.20.0"
   }
 }
