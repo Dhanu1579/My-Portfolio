@@ -3,7 +3,7 @@
 A lightweight, secure developer portfolio website built to showcase my software engineering projects, technical skills, and experience. 
 
 ## 🌐 Live Demo
-* 🔗 **Live Website:** [Insert your live deployment link here once hosted]
+* 🔗 **Live Website:** (https://my-portfolio-iuoi.onrender.com)
 
 ## 🛠️ Core Tech Stack
 - **Frontend:** HTML5, CSS3, JavaScript (ES6+)
